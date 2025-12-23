@@ -1,0 +1,34 @@
+# modelscope>=1.11.1
+modelscope
+av==14.4.0
+funasr==1.2.6
+faster-whisper # 为了使用whisper 后加的
+transformers==4.35.2
+addict # 使用modelscope 后加的
+datasets==2.21.0 # 使用modelscope 后加的
+ctranslate2==4.4.0 # 使用modelscope 后加的
+fastapi>=0.95.1
+aiofiles
+uvicorn
+requests
+# torch>=1.13
+# torchaudio
+#ffmpeg
+numpy==1.26.4
+ffmpeg-python
+python-multipart
+websockets==12.0
+soundfile 
+librosa
+pydub
+pyannote.audio # 补充用于结合whisper进行人声分离
+websockets
+simplejson==3.20.1 # 标点推理使用
+#容器环境
+# datasets                 2.21.0 
+# modelscope               1.25.0
+#python-ffmpeg
+# mac 使用 pip install torch  torchaudio 默认拉取版本torch-2.5.1 torchaudio-2.5.1
+# mac 安装numpy 1.26.4
+
+
