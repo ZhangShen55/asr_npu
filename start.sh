@@ -9,6 +9,8 @@ TMP_CONF_DIR="/tmp/app_configs"
 
 export PYTHONPATH="/"
 
+# 关闭 nounset，避免 set_env.sh 引用未定义变量导致退出
+set +u
 if [ -f /usr/local/Ascend/ascend-toolkit/set_env.sh ]; then
     # 确保 Ascend 运行时环境变量已加载
     # shellcheck disable=SC1091
@@ -18,6 +20,7 @@ if [ -f /usr/local/Ascend/nnal/atb/set_env.sh ]; then
     # shellcheck disable=SC1091
     source /usr/local/Ascend/nnal/atb/set_env.sh
 fi
+set -u
 
 if [ ! -f "$BASE_CONFIG_PATH" ]; then
     echo "[ERROR] 配置文件不存在: $BASE_CONFIG_PATH"
