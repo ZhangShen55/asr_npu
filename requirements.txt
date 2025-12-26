@@ -15,6 +15,7 @@ datasets==2.21.0
 # 华为CANN很多算子和旧版transformers对Numpy2.0支持极差
 numpy==1.26.4
 transformers==4.29.2
+safetensors==0.7.0
 
 # 音频处理依赖
 av==14.4.0

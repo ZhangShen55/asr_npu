@@ -164,7 +164,7 @@ async def audio_mandarin_detect(
                 prob_zh = detect_language_npu_final(model_whisper, chunk_path)
 
                 # 打印日志看看
-                logger.info(f"片段 {start_sec}s - {end_sec}s 普通话置信度: {prob_zh:.6f}")
+                # logger.info(f"片段 {start_sec}s - {end_sec}s 普通话置信度: {prob_zh:.6f}")
 
                 # 评分映射逻辑
                 score = int(prob_zh * 100)
