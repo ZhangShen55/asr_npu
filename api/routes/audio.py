@@ -31,24 +31,24 @@ async def audio_analyze(
         tmp_path = tmp.name
         logger.info(f"receive audio file: {tmp_path}")
 
-    start_time = time.time()
-    result = analyze_audio_auto(tmp_path, window_size_sec=time_size)
-    end_time = time.time()
-
     try:
-        os.remove(tmp_path)
-    except FileNotFoundError:
-        logger.warning(f"临时文件已不存在：{tmp_path}")
-    except Exception as e:
-        logger.error(f"删除临时文件失败：{tmp_path}，错误：{e}")
-
-    update_stat("offline")
-    return {
-        "result": result,
-        "task_id": f"task_{filename}",
-        "process_time_ms": int((end_time - start_time) * 1000),
-        "timestamp": int(time.time()),
-    }
+        start_time = time.time()
+        result = analyze_audio_auto(tmp_path, window_size_sec=time_size)
+        end_time = time.time()
+        update_stat("offline")
+        return {
+            "result": result,
+            "task_id": f"task_{filename}",
+            "process_time_ms": int((end_time - start_time) * 1000),
+            "timestamp": int(time.time()),
+        }
+    finally:
+        try:
+            os.remove(tmp_path)
+        except FileNotFoundError:
+            logger.warning(f"临时文件已不存在：{tmp_path}")
+        except Exception as e:
+            logger.error(f"删除临时文件失败：{tmp_path}，错误：{e}")
 
 def detect_language_npu_final(model, audio_path):
     """
