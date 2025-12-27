@@ -32,6 +32,7 @@ _punct_pipeline = None
 # 五何
 _model_bert = None
 _tokenizer = None
+_bert_device = None
 
 # print("PyTorch版本:", torch.__version__)
 # print("NPU设备数量:", torch_npu.npu.device_count())
@@ -79,6 +80,19 @@ def device() -> torch.device:
         # print("未检测到 GPU/NPU 设备，使用 CPU 进行推理")
         return torch.device("cpu")
 
+
+def _resolve_bert_device() -> torch.device:
+    cfg = (settings.bert_device or "").strip().lower()
+    if cfg in ("", "auto"):
+        return device()
+    if cfg == "cpu":
+        return torch.device("cpu")
+    if cfg.startswith("npu"):
+        target = globals().get("TARGET_DEVICE", cfg)
+        return torch.device(target)
+    return torch.device(cfg)
+
+
 async def load_models_if_needed():
     """
     根据配置开关懒加载模型。
@@ -99,7 +113,7 @@ async def load_models_if_needed():
                 device = TARGET_DEVICE,
                 # batch_size = 16,
                 disable_update = True,
-                disable_pbar = False
+                disable_pbar = True
             )
 
         if settings.open_emotion and settings.open_spk and _model_emotion is None:
@@ -152,11 +166,12 @@ async def load_models_if_needed():
 
 # ---------- 五何分类 ----------
 def _ensure_bert_loaded():
-    global _model_bert, _tokenizer
+    global _model_bert, _tokenizer, _bert_device
     if _model_bert is None or _tokenizer is None:
+        _bert_device = _resolve_bert_device()
         _model_bert = BertForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=settings.bert_model_dir
-        ).to(device()).eval()
+        ).to(_bert_device).eval()
         _tokenizer = BertTokenizer.from_pretrained(
             pretrained_model_name_or_path=settings.bert_model_tokenizer
         )
@@ -167,7 +182,7 @@ def predict_fivewh(text: str) -> tuple[str, int, float]:
     教师提问5何（是何、为何、若何、由何、如何、非提问） bert预测（中文）
     """
     _ensure_bert_loaded()
-    inputs = _tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128).to(device())
+    inputs = _tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128).to(_bert_device)
     with torch.no_grad():
         logits = _model_bert(**inputs).logits
         probs = F.softmax(logits, dim=1)
