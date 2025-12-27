@@ -56,31 +56,31 @@ class Settings:
     # 模型路径
     @property
     def vad_model_dir(self) -> str:
-        return self._cfg.get("vad_model_dir", "/model/speech_fsmn_vad_zh-cn-16k-common-pytorch")
+        return self._cfg.get("vad_model_dir", "/app/model/speech_fsmn_vad_zh-cn-16k-common-pytorch")
 
     @property
     def punc_model_dir(self) -> str:
-        return self._cfg.get("punc_model_dir", "/model/punc_ct-transformer_cn-en-common-vocab471067-large")
+        return self._cfg.get("punc_model_dir", "/app/model/punc_ct-transformer_cn-en-common-vocab471067-large")
 
     @property
     def asr_model_dir(self) -> str:
-        return self._cfg.get("asr_model_dir", "/model/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch")
+        return self._cfg.get("asr_model_dir", "/app/model/speech_paraformer-large-vad-punc_asr_nat-zh-cn-16k-common-vocab8404-pytorch")
 
     @property
     def spk_model_dir(self) -> Optional[str]:
-        return self._cfg.get("spk_model_dir", "/model/speech_campplus_sv_zh_en_16k-common_advanced")
+        return self._cfg.get("spk_model_dir", "/app/model/speech_campplus_sv_zh_en_16k-common_advanced")
 
     @property
     def emotion_model_dir(self) -> str:
-        return self._cfg.get("emotion_modek_dir", "/model/emotion2vec_plus_seed")
+        return self._cfg.get("emotion_modek_dir", "/app/model/emotion2vec_plus_seed")
 
     @property
     def asr_online_model_dir(self) -> str:
-        return self._cfg.get("asr_online_model_dir", "/model/speech_paraformer-large_asr_nat-zh-cantonese-en-16k-vocab8501-online")
+        return self._cfg.get("asr_online_model_dir", "/app/model/speech_paraformer-large_asr_nat-zh-cantonese-en-16k-vocab8501-online")
 
     @property
     def asr_online_punc_model_dir(self) -> str:
-        return self._cfg.get("asr_online_punc_model_dir", "/model/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727")
+        return self._cfg.get("asr_online_punc_model_dir", "/app/model/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727")
 
     @property
     def whisper_model_dir(self) -> str:
@@ -102,6 +102,10 @@ class Settings:
     @property
     def bert_model_dir(self) -> str:
         return self._cfg.get("bert_model_dir", "/model/bert_output/checkpoint-88")
+
+    @property
+    def bert_device(self) -> str:
+        return self._cfg.get("bert_device", "auto")
 
     # 功能开关
     @property
