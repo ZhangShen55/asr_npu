@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+export ASCEND_SLOG_PRINT_TO_STDOUT=0
+export ASCEND_GLOBAL_LOG_LEVEL=0
 BASE_CONFIG_PATH="${CONFIG_PATH:-/config.json}"
 APP_MODULE="${APP_MODULE:-main:app}"
 BASE_PORT="${BASE_PORT:-8000}"
