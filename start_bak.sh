@@ -1,24 +1,28 @@
 #!/bin/bash
 set -euo pipefail
 
+export ASCEND_SLOG_PRINT_TO_STDOUT=0
+export ASCEND_GLOBAL_LOG_LEVEL=0
 BASE_CONFIG_PATH="${CONFIG_PATH:-/config.json}"
 APP_MODULE="${APP_MODULE:-main:app}"
 BASE_PORT="${BASE_PORT:-8000}"
 NGINX_UPSTREAM_CONF="/etc/nginx/conf.d/backend_upstream.conf"
 TMP_CONF_DIR="/tmp/app_configs"
 
+export PYTHONPATH="/"
+
 # 关闭 nounset，避免 set_env.sh 引用未定义变量导致退出
 set +u
 if [ -f /usr/local/Ascend/ascend-toolkit/set_env.sh ]; then
+    # 确保 Ascend 运行时环境变量已加载
+    # shellcheck disable=SC1091
     source /usr/local/Ascend/ascend-toolkit/set_env.sh
 fi
 if [ -f /usr/local/Ascend/nnal/atb/set_env.sh ]; then
+    # shellcheck disable=SC1091
     source /usr/local/Ascend/nnal/atb/set_env.sh
 fi
 set -u
-
-# 追加路径，避免覆盖 TBE 相关 PYTHONPATH
-export PYTHONPATH="/:/app:${PYTHONPATH:-}"
 
 if [ ! -f "$BASE_CONFIG_PATH" ]; then
     echo "[ERROR] 配置文件不存在: $BASE_CONFIG_PATH"
@@ -35,7 +39,6 @@ mkdir -p /etc/nginx/conf.d
 
 declare -a INSTANCE_PORTS=()
 declare -a INSTANCE_CONFIGS=()
-declare -a INSTANCE_WORKERS=()
 instance_index=0
 
 has_npu_plan="$(jq -r 'has("npu_plan") and (.npu_plan | type == "object") and (.npu_plan | length > 0)' "$BASE_CONFIG_PATH")"
@@ -52,38 +55,35 @@ if [ "$has_npu_plan" = "true" ]; then
         if [ "$count" -le 0 ]; then
             continue
         fi
-        cfg_path="${TMP_CONF_DIR}/config_${npu_id}.json"
-        jq --arg dev "npu:${npu_id}" --argjson cnt "$count" \
-            '(.device=$dev) | (.instance_count=$cnt) | del(.npu_plan)' \
-            "$BASE_CONFIG_PATH" > "$cfg_path"
-        INSTANCE_CONFIGS+=("$cfg_path")
-        INSTANCE_PORTS+=("$((BASE_PORT + instance_index))")
-        INSTANCE_WORKERS+=("$count")
-        instance_index=$((instance_index + 1))
+        for ((i=0; i<count; i++)); do
+            cfg_path="${TMP_CONF_DIR}/config_npu${npu_id}_${i}.json"
+            jq --arg dev "npu:${npu_id}" '(.device=$dev) | del(.npu_plan)' "$BASE_CONFIG_PATH" > "$cfg_path"
+            INSTANCE_CONFIGS+=("$cfg_path")
+            INSTANCE_PORTS+=("$((BASE_PORT + instance_index))")
+            instance_index=$((instance_index + 1))
+        done
     done
 else
     instance_count="$(jq -r '.instance_count // 1' "$BASE_CONFIG_PATH")"
-    if ! [[ "$instance_count" =~ ^([0-9]|[1-2][0-9]|30)$ ]]; then
-        echo "[WARN] instance_count 非法（允许范围 0-30），使用默认值 1"
-        instance_count=1
-    fi
-    if [ "$instance_count" -le 0 ]; then
+    if ! [[ "$instance_count" =~ ^[0-9]+$ ]]; then
+        echo "[ERROR] instance_count 非法，使用默认值 1"
         instance_count=1
     fi
     device="$(jq -r '.device // "npu:0"' "$BASE_CONFIG_PATH")"
-    cfg_path="${TMP_CONF_DIR}/config_single.json"
-    jq --arg dev "$device" --argjson cnt "$instance_count" \
-        '(.device=$dev) | (.instance_count=$cnt) | del(.npu_plan)' \
-        "$BASE_CONFIG_PATH" > "$cfg_path"
-    INSTANCE_CONFIGS+=("$cfg_path")
-    INSTANCE_PORTS+=("$BASE_PORT")
-    INSTANCE_WORKERS+=("$instance_count")
+    for ((i=0; i<instance_count; i++)); do
+        cfg_path="${TMP_CONF_DIR}/config_single_${i}.json"
+        jq --arg dev "$device" '(.device=$dev) | del(.npu_plan)' "$BASE_CONFIG_PATH" > "$cfg_path"
+        INSTANCE_CONFIGS+=("$cfg_path")
+        INSTANCE_PORTS+=("$((BASE_PORT + i))")
+    done
 fi
 
 if [ "${#INSTANCE_PORTS[@]}" -eq 0 ]; then
     echo "[ERROR] 未生成任何实例配置，请检查 config.json 的 npu_plan 或 instance_count"
     exit 1
 fi
+
+echo "[INFO] 启动 ${#INSTANCE_PORTS[@]} 个 uvicorn 实例..."
 
 echo "[INFO] 生成 Nginx upstream 配置：$NGINX_UPSTREAM_CONF"
 {
@@ -109,18 +109,16 @@ fi
 monitor_and_restart() {
     local port=$1
     local cfg=$2
-    local workers=$3
     while true; do
-        echo "[INFO] 启动服务实例，端口: $port, workers: $workers, 配置: $cfg"
-        export CONFIG_PATH="$cfg"
-        uvicorn "$APP_MODULE" --host 127.0.0.1 --port "$port" --workers "$workers"
+        echo "[INFO] 启动服务实例，端口: $port, 配置: $cfg"
+        CONFIG_PATH="$cfg" uvicorn "$APP_MODULE" --host 127.0.0.1 --port "$port" --workers 1
         echo "[WARN] 实例端口 $port 退出，1 秒后重启..."
-        sleep 10
+        sleep 1
     done
 }
 
 for i in "${!INSTANCE_PORTS[@]}"; do
-    monitor_and_restart "${INSTANCE_PORTS[$i]}" "${INSTANCE_CONFIGS[$i]}" "${INSTANCE_WORKERS[$i]}" &
+    monitor_and_restart "${INSTANCE_PORTS[$i]}" "${INSTANCE_CONFIGS[$i]}" &
 done
 
 monitor_nginx() {
