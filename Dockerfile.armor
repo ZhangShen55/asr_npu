@@ -1,4 +1,4 @@
-FROM cann:8.2.rc1-910b-ubuntu22.04-py3.10 AS base
+FROM cann:8.1.rc1-910b-ubuntu22.04-py3.10 AS base
 
 ARG http_proxy
 ARG https_proxy
@@ -46,7 +46,7 @@ RUN python -m pip install --upgrade pip && \
 FROM deps AS builder
 WORKDIR /build
 
-RUN python -m pip install --no-cache-dir pyarmor
+RUN python -m pip install --no-cache-dir pyarmor==9.2.3
 
 COPY . .
 

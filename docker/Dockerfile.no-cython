@@ -1,5 +1,7 @@
-FROM cann:8.2.rc1-910b-ubuntu22.04-py3.10 AS base
-
+FROM cann:8.1.rc1-910b-ubuntu22.04-py3.10 AS base
+# 该版本移除所有cython编译依赖，作为纯python环境使用
+# 该版本使用C\C++进行编译加密，导致了TBE内存奔溃，uvicorn无法启动 segmentation fault的问题
+# 移除了cython问题得到解决，但是性能很慢
 ARG http_proxy
 ARG https_proxy
 ARG HTTP_PROXY
