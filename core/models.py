@@ -45,30 +45,6 @@ _bert_device = None
 _model_lock = asyncio.Lock()
 
 
-def get_asr_model():
-    return _model_asr
-
-
-def get_emotion_model():
-    return _model_emotion
-
-
-def get_online_model():
-    return _model_online
-
-
-def get_whisper_model():
-    return _model_whisper
-
-
-def get_speaker_model():
-    return _model_speaker
-
-
-def get_punct_pipeline():
-    return _punct_pipeline
-
-
 def device() -> torch.device:
     if torch.npu.is_available():
         # print(f"检测到华为 NPU 设备: {torch.npu.get_device_name(0)}")
@@ -162,6 +138,30 @@ async def load_models_if_needed():
             name=whisper_model_path,
             device=TARGET_DEVICE,
         )
+
+
+def get_asr_model():
+    return _model_asr
+
+
+def get_emotion_model():
+    return _model_emotion
+
+
+def get_online_model():
+    return _model_online
+
+
+def get_whisper_model():
+    return _model_whisper
+
+
+def get_speaker_model():
+    return _model_speaker
+
+
+def get_punct_pipeline():
+    return _punct_pipeline
 
 
 # ---------- 五何分类 ----------
