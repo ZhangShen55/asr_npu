@@ -70,6 +70,40 @@ docker build  -f Dockerfile.armor -t jy-algorithm-app-asr-ascend_cann8.1.rc1-ub2
 --build-arg NO_PROXY=localhost,127.0.0.1   .
 
 ```
+# 26年版本
+```bash
+# build:
+docker build  -f Dockerfile.armor -t jy-algorithm-app-asr-ascend_cann8.1.rc1-ub2204py310:v1.1.9_260104 \
+--build-arg http_proxy \
+--build-arg https_proxy \
+--build-arg HTTP_PROXY \
+--build-arg HTTPS_PROXY \
+--build-arg no_proxy=localhost,127.0.0.1 \
+--build-arg NO_PROXY=localhost,127.0.0.1   .
+
+# run:
+docker run -d --name asr_offline_server_260104 \
+  --runtime=ascend \
+  --ipc=host \
+  --device /dev/davinci_manager \
+  --device /dev/devmm_svm \
+  --device /dev/hisi_hdc \
+  --device /dev/davinci0 \
+  --device /dev/davinci1 \
+  -e ASCEND_RT_VISIBLE_DEVICES=0,1 \
+  -v /usr/local/dcmi:/usr/local/dcmi:ro \
+  -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi:ro \
+  -v /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro \
+  -v /etc/ascend_install.info:/etc/ascend_install.info:ro \
+  -v /home/xjtu/model_zoo/model_asr/:/model:ro \
+  -v /root/config/asr_config_offline.json:/config.json:ro \
+  -p 8081:9000 \
+  jy-algorithm-app-asr-ascend_cann8.1.rc1-ub2204py310:v1.1.9_260104
+```
+
+
+
+
 # run
 
 ```bash

@@ -1,5 +1,9 @@
 FROM cann:8.2.rc1-910b-ubuntu22.04-py3.10 AS base
 
+# 最初版本：
+# 导致问题 TBE内存奔溃：
+# 怀疑是Cython编译的问题，C/C++编译导致内存泄漏，导致TBE内存不足，导致奔溃。
+
 ARG http_proxy
 ARG https_proxy
 ARG HTTP_PROXY
