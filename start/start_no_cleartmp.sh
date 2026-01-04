@@ -1,23 +1,18 @@
 #!/bin/bash
 set -euo pipefail
-
+# 没有增加定期清除/tmp 临时文件逻辑
 BASE_CONFIG_PATH="${CONFIG_PATH:-/config.json}"
 APP_MODULE="${APP_MODULE:-main:app}"
 BASE_PORT="${BASE_PORT:-8000}"
 NGINX_UPSTREAM_CONF="/etc/nginx/conf.d/backend_upstream.conf"
 TMP_CONF_DIR="/tmp/app_configs"
 
-CLEANUP_AGE_MINUTES="${CLEANUP_AGE_MINUTES:-120}"
-CLEANUP_INTERVAL_SECONDS="${CLEANUP_INTERVAL_SECONDS:-7200}"
-
 # 关闭 nounset，避免 set_env.sh 引用未定义变量导致退出
 set +u
 if [ -f /usr/local/Ascend/ascend-toolkit/set_env.sh ]; then
-    # shellcheck disable=SC1091
     source /usr/local/Ascend/ascend-toolkit/set_env.sh
 fi
 if [ -f /usr/local/Ascend/nnal/atb/set_env.sh ]; then
-    # shellcheck disable=SC1091
     source /usr/local/Ascend/nnal/atb/set_env.sh
 fi
 set -u
@@ -37,29 +32,6 @@ fi
 
 mkdir -p "$TMP_CONF_DIR"
 mkdir -p /etc/nginx/conf.d
-
-cleanup_tmp_wav() {
-    local removed
-    removed="$(find /tmp -type f -name "*.wav" -mmin +"$CLEANUP_AGE_MINUTES" -print -delete 2>/dev/null | wc -l || true)"
-    echo "[INFO] /tmp 清理完成，删除 ${removed} 个过期 wav 文件"
-}
-
-start_cleanup_daemon() {
-    cleanup_tmp_wav
-    while true; do
-        sleep "$CLEANUP_INTERVAL_SECONDS"
-        cleanup_tmp_wav
-    done
-}
-
-start_cleanup_daemon &
-cleanup_pid=$!
-sleep 1
-if ! kill -0 "$cleanup_pid" 2>/dev/null; then
-    echo "[ERROR] 临时文件清理任务启动失败，服务不会拉起"
-    exit 1
-fi
-echo "[INFO] 临时文件清理任务已启动，PID: $cleanup_pid"
 
 declare -a INSTANCE_PORTS=()
 declare -a INSTANCE_CONFIGS=()
@@ -142,7 +114,7 @@ monitor_and_restart() {
         echo "[INFO] 启动服务实例，端口: $port, workers: $workers, 配置: $cfg"
         export CONFIG_PATH="$cfg"
         uvicorn "$APP_MODULE" --host 127.0.0.1 --port "$port" --workers "$workers"
-        echo "[WARN] 实例端口 $port 退出，10 秒后重启..."
+        echo "[WARN] 实例端口 $port 退出，1 秒后重启..."
         sleep 10
     done
 }
@@ -162,22 +134,4 @@ monitor_nginx() {
 }
 
 monitor_nginx &
-monitor_cleanup() {
-    while true; do
-        if ! kill -0 "$cleanup_pid" 2>/dev/null; then
-            echo "[WARN] 临时文件清理任务已退出，尝试重启..."
-            start_cleanup_daemon &
-            cleanup_pid=$!
-            sleep 1
-            if kill -0 "$cleanup_pid" 2>/dev/null; then
-                echo "[INFO] 临时文件清理任务已重启，PID: $cleanup_pid"
-            else
-                echo "[ERROR] 临时文件清理任务重启失败"
-            fi
-        fi
-        sleep 30
-    done
-}
-
-monitor_cleanup &
 wait
